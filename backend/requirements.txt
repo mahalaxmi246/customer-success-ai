@@ -1,0 +1,35 @@
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# LangGraph + LangChain
+langgraph==0.1.9
+langchain==0.2.5
+langchain-groq==0.1.5
+langchain-community==0.2.5
+
+# Vector DB
+qdrant-client==1.9.1
+
+# Embeddings
+sentence-transformers==3.0.0
+
+# PDF reading
+pypdf==4.2.0
+
+# Gmail API
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+google-api-python-client==2.130.0
+
+# Scheduler
+apscheduler==3.10.4
+
+# Database
+sqlalchemy==2.0.30
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.7.3
+pydantic-settings==2.3.0
+python-multipart==0.0.9
