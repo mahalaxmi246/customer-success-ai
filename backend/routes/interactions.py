@@ -165,13 +165,51 @@ def create_manual_interaction(
 ):
     """
     Accept a manual interaction submission from the UI form.
-    Creates the interaction and triggers the LangGraph analysis in background.
+    If identical content already exists for this customer with completed
+    recommendations, return cached result instead of reanalyzing.
     """
     # Verify customer exists
     customer = db.query(Customer).filter(Customer.id == body.customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
+    # ── Duplicate detection ───────────────────────────────
+    # Check if identical interaction already exists for this customer
+    content_stripped = body.content.strip()
+    existing = (
+      db.query(Interaction)
+      .filter(
+          Interaction.customer_id      == body.customer_id,
+          Interaction.interaction_type == body.interaction_type,
+          Interaction.status.in_(["completed", "awaiting_approval", "processing"])
+      )
+      .order_by(Interaction.timestamp.desc())
+      .all()
+  )
+
+    for prev in existing:
+        if prev.content and prev.content.strip() == content_stripped:
+            print(f"  [Cache] Duplicate detected — returning interaction #{prev.id} (status: {prev.status})")
+            return {
+                "message":        f"Duplicate interaction detected. Returning existing result (status: {prev.status}).",
+                "interaction_id": prev.id,
+                "status":         prev.status,
+                "cached":         True,
+            }
+
+    
+        if prev.content and prev.content.strip() == content_stripped:
+            # Found exact duplicate — check if it has recommendations
+            if prev.recommendations:
+                print(f"  [Cache] Duplicate interaction detected — returning cached result for interaction #{prev.id}")
+                return {
+                    "message":        "Duplicate interaction detected. Returning cached recommendations.",
+                    "interaction_id": prev.id,
+                    "status":         prev.status,
+                    "cached":         True,
+                }
+
+    # ── No duplicate found — create new interaction ───────
     interaction = Interaction(
         customer_id       = body.customer_id,
         source            = "manual",
@@ -196,8 +234,8 @@ def create_manual_interaction(
         "message":        "Interaction created and analysis started.",
         "interaction_id": interaction.id,
         "status":         "new",
+        "cached":         False,
     }
-
 
 @router.post("/{interaction_id}/analyze")
 def analyze_interaction(

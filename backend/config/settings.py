@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Groq
+    GEMINI_API_KEY: str = ""
     GROQ_API_KEY: str = ""
 
     # Qdrant

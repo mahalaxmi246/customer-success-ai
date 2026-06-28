@@ -49,11 +49,11 @@ def approve_interaction(
     if not interaction:
         raise HTTPException(status_code=404, detail="Interaction not found")
 
-    if interaction.status not in ["awaiting_approval", "processing"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Interaction status is '{interaction.status}'. Only awaiting_approval interactions can be approved."
-        )
+    if interaction.status not in ["awaiting_approval", "processing", "completed"]:
+      raise HTTPException(
+          status_code=400,
+          detail=f"Interaction status is '{interaction.status}'. Cannot accept decisions."
+      )
 
     approved_actions  = []
     rejected_actions  = []
@@ -105,11 +105,26 @@ def approve_interaction(
         else:
             rejected_actions.append(action_summary)
 
-    # Mark interaction as completed
+    # Mark interaction as completed regardless of how many decisions submitted
+    # Partial approval is valid — even 1 decision out of 3 is enough
     interaction.status     = "completed"
     interaction.updated_at = datetime.utcnow()
 
     db.commit()
+    print(f"  [Approvals] Interaction #{interaction_id} marked completed. Decisions: {len(body.approvals)}")
+    print(f"  [Approvals] Decision details: {[a.decision for a in body.approvals]}")
+    # Resume LangGraph graph after human decision
+    try:
+        from graph import resume_graph
+        resume_graph(
+            interaction_id=interaction_id,
+            human_decision={
+                "approvals": [a.dict() for a in body.approvals]
+            }
+        )
+    except Exception as e:
+        print(f"[Approvals] Graph resume error (non-critical): {e}")
+
 
     # Update customer memory
     _update_customer_memory(

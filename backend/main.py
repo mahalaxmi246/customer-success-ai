@@ -5,6 +5,8 @@ Wires together all routes, scheduler, and startup events.
 
 import sys
 import os
+
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
@@ -40,14 +42,18 @@ def process_new_interactions():
         db = SessionLocal()
         try:
             new_interactions = db.query(Interaction).filter(
-                Interaction.status == "new"
-            ).all()
+            Interaction.status == "new"
+        ).all()
 
             for interaction in new_interactions:
+                # Re-check status inside loop to avoid race condition with background tasks
+                db.refresh(interaction)
+                if interaction.status != "new":
+                    print(f"[Scheduler] Skipping #{interaction.id} — already picked up")
+                    continue
                 print(f"[Scheduler] Auto-analyzing interaction {interaction.id}: {interaction.title[:50]}")
                 interaction.status = "processing"
                 db.commit()
-                # Run in same thread (scheduler handles concurrency)
                 run_graph(interaction.id)
         finally:
             db.close()
@@ -65,6 +71,22 @@ async def lifespan(app: FastAPI):
     # Create DB tables
     create_tables()
     print("Database tables ready.")
+    # Auto-reset any interactions stuck in processing from previous server runs
+    from database import SessionLocal, Interaction
+    _db = SessionLocal()
+    try:
+        stuck = _db.query(Interaction).filter(
+            Interaction.status == "processing"
+        ).all()
+        if stuck:
+            for i in stuck:
+                i.status = "new"
+            _db.commit()
+            print(f"Auto-reset {len(stuck)} stuck interaction(s) to 'new'.")
+        else:
+            print("No stuck interactions found.")
+    finally:
+        _db.close()
 
     # Start Gmail polling every 30 seconds
     scheduler.add_job(
@@ -137,4 +159,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
