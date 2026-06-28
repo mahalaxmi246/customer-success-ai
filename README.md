@@ -275,20 +275,11 @@ All endpoints except `/auth/signup` and `/auth/login` require `Authorization: Be
 
 ---
 
-## 🗺️ Roadmap
 
-- [ ] **Execution actions** — wire approved NBAs directly to Gmail send, Google Calendar create, Slack notify
-- [ ] **Production data layer** — PostgreSQL, Qdrant Cloud, Redis cache, Celery job queue
-- [ ] **Observability dashboard** — per-agent latency, approval rates, failure traces
-- [ ] **Advanced agents** — Sentiment Trend, Upsell Intelligence, Competitive Intelligence
-- [ ] **CRM integrations** — Salesforce, HubSpot, Zendesk (ingestion layer is plug-and-play)
-- [ ] **Multi-tenant** — org-level data isolation, RBAC, per-org playbook management
-
----
 
 ## 👥 Team
 
-Built by a team of 3 for the **XLVentures.AI Hackathon 2026** · Submission: 29 June 2026
+Built by a team of 3( **Mahalaxmi Somisetty, Harshini Vykuntapu, Lasya Sothuku** ) for the **XLVentures.AI Hackathon 2026** · 
 
 📧 [talent@xlventures.ai](mailto:talent@xlventures.ai)
 
